@@ -30,8 +30,8 @@ class TestPoset:
         poset.order("a1", "b2")
         poset.order("b1", "b2")
         poset.order("b2", "b3")
-        assert "b3" in poset.rel["a1"]
-        assert "b3" in poset.rel["b1"]
+        assert poset.check("a1", "b3")
+        assert poset.check("b1", "b3")
 
     def test_order_cycle_1(self):
         poset = Poset({"A", "B"})
@@ -61,3 +61,14 @@ class TestPoset:
         poset.order("b2", "b3")
         ref = poset.refinements()
         assert len(ref) == 9
+
+    def test_all_topological_sort(self):
+        poset = Poset({"a1", "b1", "b2", "b3"})
+        poset.order("b1", "b2")
+        poset.order("b2", "b3")
+        t1 = poset.all_topological_sorts()
+        assert len([*t1]) == 4
+
+        poset.order("a1", "b2")
+        t2 = poset.all_topological_sorts()
+        assert len([*t2]) == 2

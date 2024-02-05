@@ -1,6 +1,7 @@
-from collections import deque
 from copy import deepcopy
 from itertools import permutations, product
+
+import networkx as nx
 
 
 class PosetAsymmetryException(Exception):
@@ -9,46 +10,31 @@ class PosetAsymmetryException(Exception):
 
 class Poset:
     def __init__(self, elements: set[str]):
-        # a < b if b in self.relation[a]
-        self.rel: dict[str, set[str]] = {element: set() for element in elements}
-        self.rev_rel: dict[str, set[str]] = {element: set() for element in elements}
+        self.G = nx.DiGraph()
+        self.G.add_nodes_from(elements)
 
         self.asymmetry_violation_cache = set()
 
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Poset):
-            return self.rel == __value.rel
+            return nx.utils.graphs_equal(self.G, __value.G)
         return self == __value
 
     def __hash__(self) -> int:
-        return hash(frozenset((k, frozenset(v)) for k, v in self.rel.items()))
+        return hash(nx.weisfeiler_lehman_graph_hash(self.G))
 
     def link(self, a: str, b: str):
-        self.rel[a].add(b)
-        self.rev_rel[b].add(a)
+        self.G.add_edge(a, b)
 
     def predecessors(self, node: str) -> set[str]:
-        predecessors = {*()}
-        q = deque([node])
-        while len(q) != 0:
-            element = q.pop()
-            predecessors.add(element)
-            for p in self.rev_rel[element]:
-                q.append(p)
-        # omit node itself
-        predecessors.remove(node)
-        return predecessors
+        p = set(nx.single_source_shortest_path_length(self.G.reverse(), node).keys())
+        p.remove(node)
+        return p
 
     def successors(self, node: str) -> set[str]:
-        successors = {*()}
-        q = deque([node])
-        while len(q) != 0:
-            element = q.pop()
-            successors.add(element)
-            for p in self.rel[element]:
-                q.append(p)
-        successors.remove(node)
-        return successors
+        s = set(nx.single_source_shortest_path_length(self.G, node).keys())
+        s.remove(node)
+        return s
 
     def order(self, a: str, b: str):
         if (a, b) in self.asymmetry_violation_cache:
@@ -64,10 +50,10 @@ class Poset:
             self.link(src, dst)
 
     def check(self, a: str, b: str):
-        return b in self.rel[a]
+        return self.G.has_edge(a, b)
 
     def refinements(self):
-        elements = self.rel.keys()
+        elements = set(self.G.nodes)
         refinements = set()
         for src, dst in permutations(elements, 2):
             if self.check(src, dst):
@@ -84,13 +70,16 @@ class Poset:
             refinements.update(poset.refinements())
         return refinements
 
-    def visualize(self):
-        import graphviz
+    def all_topological_sorts(self):
+        return nx.all_topological_sorts(self.G)
 
-        dot = graphviz.Digraph()
-        for node in self.rel.keys():
-            dot.node(node, node)
-        for src, dst_set in self.rel.items():
-            for dst in dst_set:
-                dot.edge(src, dst)
-        return dot
+    def visualize(self):
+        return nx.nx_pydot.to_pydot(self.G)
+
+
+if __name__ == "__main__":
+    poset = Poset({"a1", "b1", "b2", "b3"})
+    poset.order("b1", "b2")
+    poset.order("b2", "b3")
+    poset.order("a1", "b2")
+    poset.visualize().write_png("poset.png")
