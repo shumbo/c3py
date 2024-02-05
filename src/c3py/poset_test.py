@@ -35,16 +35,14 @@ class TestPoset:
 
     def test_order_cycle_1(self):
         poset = Poset({"A", "B"})
-        poset.order("A", "B")
-        with pytest.raises(PosetAsymmetryException):
-            poset.order("B", "A")
+        assert poset.order("A", "B")
+        assert not poset.order("B", "A")
 
     def test_order_cycle_2(self):
         poset = Poset({"A", "B", "C"})
-        poset.order("A", "B")
-        poset.order("B", "C")
-        with pytest.raises(PosetAsymmetryException):
-            poset.order("C", "A")
+        assert poset.order("A", "B")
+        assert poset.order("B", "C")
+        assert not poset.order("C", "A")
 
     def test_copy(self):
         poset = Poset({"A", "B", "C"})

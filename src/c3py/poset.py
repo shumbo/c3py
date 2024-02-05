@@ -1,3 +1,4 @@
+from collections import deque
 from copy import deepcopy
 from itertools import permutations, product
 
@@ -27,14 +28,34 @@ class Poset:
         self.G.add_edge(a, b)
 
     def predecessors(self, node: str) -> set[str]:
-        p = set(nx.single_source_shortest_path_length(self.G.reverse(), node).keys())
-        p.remove(node)
-        return p
+        predecessors = {*()}
+        added = set()
+        q = deque([node])
+        while len(q) != 0:
+            element = q.pop()
+            predecessors.add(element)
+            for p in self.G.predecessors(element):
+                if p not in added:
+                    added.add(p)
+                    q.append(p)
+        # omit node itself
+        predecessors.remove(node)
+        return predecessors
 
     def successors(self, node: str) -> set[str]:
-        s = set(nx.single_source_shortest_path_length(self.G, node).keys())
-        s.remove(node)
-        return s
+        successors = {*()}
+        added = set()
+        q = deque([node])
+        while len(q) != 0:
+            element = q.pop()
+            successors.add(element)
+            for p in self.G.successors(element):
+                if p not in added:
+                    added.add(p)
+                    q.append(p)
+        # omit node itself
+        successors.remove(node)
+        return successors
 
     def elements(self) -> set[str]:
         return set(self.G.nodes)
@@ -47,16 +68,17 @@ class Poset:
 
     def order(self, a: str, b: str):
         if (a, b) in self.asymmetry_violation_cache:
-            raise PosetAsymmetryException(f"ordering {a} < {b} would violate asymmetry")
+            return False
         p = self.predecessors(a)
         p.add(a)
         s = self.successors(b)
         s.add(b)
         if len(p.intersection(s)) > 0:
             self.asymmetry_violation_cache.add((a, b))
-            raise PosetAsymmetryException(f"ordering {a} < {b} would violate asymmetry")
+            return False
         for src, dst in product(p, s):
             self.link(src, dst)
+        return True
 
     def check(self, a: str, b: str):
         return self.G.has_edge(a, b)
@@ -70,10 +92,8 @@ class Poset:
                 # already ordered
                 continue
             poset = deepcopy(self)
-            try:
-                # try ordering these two elements
-                poset.order(src, dst)
-            except PosetAsymmetryException:
+            # try ordering these two elements
+            if not poset.order(src, dst):
                 continue
             # if src < dst is possible
             refinements.add(poset)

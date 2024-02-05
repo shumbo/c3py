@@ -3,7 +3,7 @@ from typing import Any, NamedTuple
 from abc import ABC, abstractmethod
 from types import MappingProxyType
 
-from poset import Poset
+from .poset import Poset
 
 
 class Instruction(NamedTuple):
@@ -154,7 +154,7 @@ if __name__ == "__main__":
             "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2), None)],
             "c": [
                 Operation("rd", "x", 2),
-                Operation("rd", "x", 1),
+                # Operation("rd", "x", 1),
             ],
         }
     )
