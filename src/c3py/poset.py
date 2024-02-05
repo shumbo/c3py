@@ -9,7 +9,7 @@ class PosetAsymmetryException(Exception):
 
 
 class Poset:
-    def __init__(self, elements: set[str]):
+    def __init__(self, elements):
         self.G = nx.DiGraph()
         self.G.add_nodes_from(elements)
 
@@ -36,6 +36,15 @@ class Poset:
         s.remove(node)
         return s
 
+    def elements(self) -> set[str]:
+        return set(self.G.nodes)
+
+    def subset(self, nodes):
+        s = deepcopy(self)
+        s.G = s.G.subgraph(nodes)
+        s.asymmetry_violation_cache = set()
+        return s
+
     def order(self, a: str, b: str):
         if (a, b) in self.asymmetry_violation_cache:
             raise PosetAsymmetryException(f"ordering {a} < {b} would violate asymmetry")
@@ -52,7 +61,8 @@ class Poset:
     def check(self, a: str, b: str):
         return self.G.has_edge(a, b)
 
-    def refinements(self):
+    def refinements(self) -> set["Poset"]:
+        # print(f"refine d={depth}")
         elements = set(self.G.nodes)
         refinements = set()
         for src, dst in permutations(elements, 2):
