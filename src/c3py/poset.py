@@ -1,8 +1,14 @@
 from collections import deque
 from copy import deepcopy
-from itertools import permutations, product
+from itertools import chain, combinations, permutations, product
 
 import networkx as nx
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 class PosetAsymmetryException(Exception):
@@ -66,6 +72,26 @@ class Poset:
         s.asymmetry_violation_cache = set()
         return s
 
+    def can_order(self, a: str, b: str):
+        if (a, b) in self.asymmetry_violation_cache:
+            return False
+        p = self.predecessors(a)
+        p.add(a)
+        s = self.successors(b)
+        s.add(b)
+        if len(p.intersection(s)) > 0:
+            self.asymmetry_violation_cache.add((a, b))
+            return False
+        return True
+
+    def order_force(self, a: str, b: str):
+        p = self.predecessors(a)
+        p.add(a)
+        s = self.successors(b)
+        s.add(b)
+        for src, dst in product(p, s):
+            self.link(src, dst)
+
     def order(self, a: str, b: str):
         if (a, b) in self.asymmetry_violation_cache:
             return False
@@ -86,19 +112,30 @@ class Poset:
     def refinements(self) -> set["Poset"]:
         # print(f"refine d={depth}")
         elements = set(self.G.nodes)
-        refinements = set()
-        for src, dst in permutations(elements, 2):
-            if self.check(src, dst):
-                # already ordered
-                continue
-            poset = deepcopy(self)
-            # try ordering these two elements
-            if not poset.order(src, dst):
-                continue
-            # if src < dst is possible
-            refinements.add(poset)
-            refinements.update(poset.refinements())
-        return refinements
+        pairs = set(permutations(elements, 2))
+        existing_pairs = {e for e in self.G.edges}
+        pairs = pairs - existing_pairs
+        power = powerset(pairs)
+        r = set()
+        dirty = True
+        dc_count = 0
+        for edges in power:
+            if dirty:
+                dc_count += 1
+                poset = deepcopy(self)
+            for edge in edges:
+                u, v = edge
+                if poset.check(u, v):
+                    # if already connected, is on the gap
+                    break
+                if not poset.can_order(u, v):
+                    break
+                poset.order_force(u, v)
+                dirty = True
+            else:
+                # if all edges are added without violating asymmetry, add to the set
+                r.add(poset)
+        return r
 
     def all_topological_sorts(self):
         return nx.all_topological_sorts(self.G)

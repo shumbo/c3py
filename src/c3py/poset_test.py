@@ -58,7 +58,7 @@ class TestPoset:
         poset.order("b1", "b2")
         poset.order("b2", "b3")
         ref = poset.refinements()
-        assert len(ref) == 9
+        assert len(ref) == 10
 
     def test_all_topological_sort(self):
         poset = Poset({"a1", "b1", "b2", "b3"})
