@@ -5,16 +5,6 @@ from itertools import chain, combinations, permutations, product
 import networkx as nx
 
 
-def powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
-
-
-class PosetAsymmetryException(Exception):
-    pass
-
-
 class Poset:
     def __init__(self, elements):
         self.G = nx.DiGraph()
@@ -92,49 +82,45 @@ class Poset:
         for src, dst in product(p, s):
             self.link(src, dst)
 
-    def order(self, a: str, b: str):
-        if (a, b) in self.asymmetry_violation_cache:
-            return False
-        p = self.predecessors(a)
-        p.add(a)
-        s = self.successors(b)
-        s.add(b)
-        if len(p.intersection(s)) > 0:
-            self.asymmetry_violation_cache.add((a, b))
-            return False
-        for src, dst in product(p, s):
-            self.link(src, dst)
-        return True
+    def order_try(self, a: str, b: str):
+        if self.can_order(a, b):
+            self.order_force(a, b)
+            return True
+        return False
 
     def check(self, a: str, b: str):
         return self.G.has_edge(a, b)
 
     def refinements(self) -> set["Poset"]:
-        # print(f"refine d={depth}")
         elements = set(self.G.nodes)
         pairs = set(permutations(elements, 2))
         existing_pairs = {e for e in self.G.edges}
-        pairs = pairs - existing_pairs
-        power = powerset(pairs)
-        r = set()
-        dirty = True
-        dc_count = 0
-        for edges in power:
-            if dirty:
-                dc_count += 1
-                poset = deepcopy(self)
-            for edge in edges:
-                u, v = edge
-                if poset.check(u, v):
-                    # if already connected, is on the gap
-                    break
-                if not poset.can_order(u, v):
-                    break
-                poset.order_force(u, v)
-                dirty = True
-            else:
-                # if all edges are added without violating asymmetry, add to the set
-                r.add(poset)
+        pairs = list(pairs - existing_pairs)
+        l = len(pairs)  # number of pairs
+        r = set()  # refinements
+        q = deque([(self, 0)])
+        while len(q) > 0:
+            poset, n = q.popleft()
+            r.add(deepcopy(poset))
+
+            # base case
+            if n == l:
+                continue
+
+            # don't add edge
+            q.append((poset, n + 1))
+
+            # add edge
+            u, v = pairs[n]
+            if poset.check(u, v):
+                # already connected
+                continue
+            if not poset.can_order(u, v):
+                # would break asymmetry
+                continue
+            poset = deepcopy(poset)
+            poset.order_force(u, v)
+            q.append((poset, n + 1))
         return r
 
     def all_topological_sorts(self):
@@ -146,7 +132,7 @@ class Poset:
 
 if __name__ == "__main__":
     poset = Poset({"a1", "b1", "b2", "b3"})
-    poset.order("b1", "b2")
-    poset.order("b2", "b3")
-    poset.order("a1", "b2")
+    poset.order_try("b1", "b2")
+    poset.order_try("b2", "b3")
+    poset.order_try("a1", "b2")
     poset.visualize().write_png("poset.png")

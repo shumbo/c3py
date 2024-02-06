@@ -22,8 +22,10 @@ pandas==2.2.0
 pillow==10.2.0
 pluggy==1.4.0
 pydot==2.0.0
+pyinstrument==4.6.2
 pyparsing==3.1.1
 pytest==8.0.0
+pytest-skip-slow==0.0.5
 python-dateutil==2.8.2
 pytz==2024.1
 scipy==1.12.0

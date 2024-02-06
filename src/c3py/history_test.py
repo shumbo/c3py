@@ -50,19 +50,6 @@ class TestRWMemorySpecification:
 
 
 class TestHistory:
-    def make_history_a(self):
-        h = History(
-            {
-                "a": [Operation("wr", ("x", 1), None), Operation("wr", ("y", 1), None)],
-                "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2), None)],
-                "c": [
-                    Operation("rd", "x", 2),
-                    Operation("rd", "x", 1),
-                ],
-            }
-        )
-        return h
-
     def make_history_c(self):
         h = History(
             {
@@ -76,10 +63,24 @@ class TestHistory:
         )
         return h
 
-    def test_cc_history_a(self):
-        h = self.make_history_a()
-        assert not check_CC(h, RWMemorySpecification())
+    def make_history_e(self):
+        h = History(
+            {
+                "a": [Operation("wr", ("x", 1), None), Operation("wr", ("y", 1), None)],
+                "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2), None)],
+                "c": [
+                    Operation("rd", "x", 2),
+                    Operation("rd", "x", 1),
+                ],
+            }
+        )
+        return h
 
     def test_cc_history_c(self):
-        h = self.make_history_a()
+        h = self.make_history_c()
         assert check_CC(h, RWMemorySpecification())
+
+    @pytest.mark.slow()
+    def test_cc_history_e(self):
+        h = self.make_history_e()
+        assert not check_CC(h, RWMemorySpecification())

@@ -3,7 +3,11 @@ name = "c3py"
 version = "0.1.0"
 description = "Add your description here"
 authors = [{ name = "Shun Kashiwa", email = "shunthedev@gmail.com" }]
-dependencies = ["graphviz>=0.20.1", "networkx[default]>=3.1", "pydot>=2.0.0"]
+dependencies = [
+    "graphviz>=0.20.1",
+    "networkx[default]>=3.1",
+    "pydot>=2.0.0",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 
@@ -16,7 +20,11 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = ["pytest>=8.0.0"]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pyinstrument>=4.6.2",
+    "pytest-skip-slow>=0.0.5",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true

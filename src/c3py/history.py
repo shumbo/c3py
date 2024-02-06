@@ -2,8 +2,11 @@ from copy import deepcopy
 from typing import Any, NamedTuple
 from abc import ABC, abstractmethod
 from types import MappingProxyType
+import logging
 
-from .poset import Poset
+from c3py.poset import Poset
+
+logger = logging.getLogger(__name__)
 
 
 class Instruction(NamedTuple):
@@ -39,7 +42,7 @@ class History:
         self.poset = Poset(self.operations)
         for process, ops in data.items():
             for i in range(len(ops) - 1):
-                self.poset.order(f"{process}.{i + 1}", f"{process}.{i + 2}")
+                self.poset.order_try(f"{process}.{i + 1}", f"{process}.{i + 2}")
 
     def causal_hist(self, op_id: str, ret_set: set[str]):
         ch = deepcopy(self)
@@ -94,50 +97,28 @@ class RWMemorySpecification(Specification):
 
 
 def check_CC(h: History, spec: Specification) -> bool:
-    # a history is valid if there exists a co that refines program order
-    # for co in h.poset.refinements():
-    #     print("check co")
-    #     is_valid_co = True
-    #     # for all operation
-    #     for op_id in co.elements():
-    #         print(f"for operation {op_id}")
-    #         ch = h.causal_hist(op_id, {op_id})
-    #         ros = ch.poset.all_topological_sorts()
-    #         found_satisfying_order = False
-    #         for ro in ros:
-    #             log = [ch.label[op_id] for op_id in ro]
-    #             if spec.satisfies(log):
-    #                 found_satisfying_order = True
-    #                 break
-    #         if found_satisfying_order:
-    #             break
-    #     if is_valid_co:
-    #         return True
-    # return False
-
     for i, co in enumerate(h.poset.refinements()):
-        print(f"check co #{i}", co)
-        # co.visualize().write_png(f"viz/{i}.png")
+        logger.info(f"check co #{i}", co)
         all_op_satisfied = True
         for op_id in co.elements():
-            print(f"    focus on {op_id}: ", h.label[op_id])
+            logger.info(f"    focus on {op_id}: ", h.label[op_id])
             exists_valid_topological_sort = False
 
             ch = deepcopy(h)
             ch.poset = co
             ch = ch.causal_hist(op_id, {op_id})
             ros = [*ch.poset.all_topological_sorts()]
-            print(f"    {len(ros)} possible topological orderings")
+            logger.info(f"    {len(ros)} possible topological orderings")
 
             for ro in ros:
                 log = [ch.label[op_id] for op_id in ro]
-                print("        checking:", log)
+                logger.info("        checking:", log)
                 if spec.satisfies(log):
-                    print("        satisfied")
+                    logger.info("        satisfied")
                     exists_valid_topological_sort = True
                     break
                 else:
-                    print("        not satisfied")
+                    logger.info("        not satisfied")
 
             if not exists_valid_topological_sort:
                 all_op_satisfied = False
@@ -145,18 +126,3 @@ def check_CC(h: History, spec: Specification) -> bool:
         if all_op_satisfied:
             return True
     return False
-
-
-if __name__ == "__main__":
-    h = History(
-        {
-            "a": [Operation("wr", ("x", 1), None), Operation("wr", ("y", 1), None)],
-            "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2), None)],
-            "c": [
-                Operation("rd", "x", 2),
-                # Operation("rd", "x", 1),
-            ],
-        }
-    )
-    print(check_CC(h, RWMemorySpecification()))
-    # print(h.program_order.visualize().write_png("po.png"))
