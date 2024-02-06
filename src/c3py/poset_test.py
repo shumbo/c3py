@@ -1,8 +1,5 @@
 import copy
 
-import pytest
-
-
 from .poset import Poset
 
 
@@ -49,8 +46,8 @@ class TestPoset:
         poset.order_try("A", "B")
         c = copy.deepcopy(poset)
         poset.order_try("B", "C")
-        assert poset.check("A", "C") == True
-        assert c.check("A", "C") == False
+        assert poset.check("A", "C") is True
+        assert c.check("A", "C") is False
 
     def test_refinements_simple(self):
         poset = Poset({"A", "B"})

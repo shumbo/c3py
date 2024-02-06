@@ -1,6 +1,6 @@
 from collections import deque
 from copy import deepcopy
-from itertools import chain, combinations, permutations, product
+from itertools import permutations, product
 
 import networkx as nx
 
@@ -96,7 +96,7 @@ class Poset:
         pairs = set(permutations(elements, 2))
         existing_pairs = {e for e in self.G.edges}
         pairs = list(pairs - existing_pairs)
-        l = len(pairs)  # number of pairs
+        pair_count = len(pairs)  # number of pairs
         r = set()  # refinements
         q = deque([(self, 0)])
         while len(q) > 0:
@@ -104,7 +104,7 @@ class Poset:
             r.add(deepcopy(poset))
 
             # base case
-            if n == l:
+            if n == pair_count:
                 continue
 
             # don't add edge

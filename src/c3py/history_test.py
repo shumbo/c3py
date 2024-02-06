@@ -1,6 +1,12 @@
 import pytest
 
-from .history import *
+from c3py.history import (
+    History,
+    Instruction,
+    Operation,
+    RWMemorySpecification,
+    check_CC,
+)
 
 
 class TestRWMemorySpecification:

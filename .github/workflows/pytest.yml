@@ -1,0 +1,25 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install the latest version of rye
+        uses: eifinger/setup-rye@v1
+
+      - run: rye sync
+
+      - name: format
+        run: rye fmt --check
+
+      - name: lint
+        run: rye lint --check
+
+      - name: Run tests
+        run: rye run pytest
+
+      - name: Run slow tests
+        run: rye run pytest -m slow --slow

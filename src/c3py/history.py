@@ -1,8 +1,8 @@
-from copy import deepcopy
-from typing import Any, NamedTuple
-from abc import ABC, abstractmethod
-from types import MappingProxyType
 import logging
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from types import MappingProxyType
+from typing import Any, NamedTuple
 
 from c3py.poset import Poset
 
@@ -26,7 +26,7 @@ class Operation(NamedTuple):
 class History:
     def __init__(self, data):
         # validation
-        assert type(data) == dict, "data should be a dictionary"
+        assert isinstance(data, dict), "data should be a dictionary"
         for _, ops in data.items():
             for op in ops:
                 assert isinstance(op, Operation), "invalid operation"
