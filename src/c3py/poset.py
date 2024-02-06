@@ -128,11 +128,3 @@ class Poset:
 
     def visualize(self):
         return nx.nx_pydot.to_pydot(self.G)
-
-
-if __name__ == "__main__":
-    poset = Poset({"a1", "b1", "b2", "b3"})
-    poset.order_try("b1", "b2")
-    poset.order_try("b2", "b3")
-    poset.order_try("a1", "b2")
-    poset.visualize().write_png("poset.png")
