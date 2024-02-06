@@ -16,7 +16,7 @@ jobs:
         run: rye fmt --check
 
       - name: lint
-        run: rye lint --check
+        run: rye lint
 
       - name: Run tests
         run: rye run pytest
