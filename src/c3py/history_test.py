@@ -166,14 +166,17 @@ class TestHistory:
         h = self.make_history_c()
         assert check_CV(h, RWMemorySpecification()) is False
 
+    @pytest.mark.slow()
     def test_cc_history_d(self):
         h = self.make_history_d()
         assert check_CC(h, RWMemorySpecification()) is True
 
+    @pytest.mark.slow()
     def test_cm_history_d(self):
         h = self.make_history_d()
         assert check_CM(h, RWMemorySpecification()) is True
 
+    @pytest.mark.slow()
     def test_cv_history_d(self):
         h = self.make_history_d()
         assert check_CV(h, RWMemorySpecification()) is True
