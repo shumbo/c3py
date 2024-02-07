@@ -6,6 +6,8 @@ from c3py.history import (
     Operation,
     RWMemorySpecification,
     check_CC,
+    check_CM,
+    check_CV,
 )
 
 
@@ -56,13 +58,59 @@ class TestRWMemorySpecification:
 
 
 class TestHistory:
+    def make_history_a(self):
+        h = History(
+            {
+                "a": [Operation("wr", ("x", 1)), Operation("rd", "x", 2)],
+                "b": [Operation("wr", ("x", 2)), Operation("rd", "x", 1)],
+            }
+        )
+        return h
+
+    def make_history_b(self):
+        h = History(
+            {
+                "a": [
+                    Operation("wr", ("z", 1)),
+                    Operation("wr", ("x", 1)),
+                    Operation("wr", ("y", 1)),
+                ],
+                "b": [
+                    Operation("wr", ("x", 2)),
+                    Operation("rd", "z", None),  # default value (0 in paper)
+                    Operation("rd", "y", 1),
+                    Operation("rd", "x", 2),
+                ],
+            }
+        )
+        return h
+
     def make_history_c(self):
         h = History(
             {
-                "a": [Operation("wr", ("x", 1), None)],
+                "a": [Operation("wr", ("x", 1))],
                 "b": [
-                    Operation("wr", ("x", 2), None),
+                    Operation("wr", ("x", 2)),
                     Operation("rd", "x", 1),
+                    Operation("rd", "x", 2),
+                ],
+            }
+        )
+        return h
+
+    def make_history_d(self):
+        h = History(
+            {
+                "a": [
+                    Operation("wr", ("x", 1)),
+                    Operation("rd", "y", None),  # default value
+                    Operation("wr", ("y", 1)),
+                    Operation("rd", "x", 1),
+                ],
+                "b": [
+                    Operation("wr", ("x", 2)),
+                    Operation("rd", "y", None),  # default value
+                    Operation("wr", ("y", 2)),
                     Operation("rd", "x", 2),
                 ],
             }
@@ -72,8 +120,8 @@ class TestHistory:
     def make_history_e(self):
         h = History(
             {
-                "a": [Operation("wr", ("x", 1), None), Operation("wr", ("y", 1), None)],
-                "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2), None)],
+                "a": [Operation("wr", ("x", 1)), Operation("wr", ("y", 1))],
+                "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2))],
                 "c": [
                     Operation("rd", "x", 2),
                     Operation("rd", "x", 1),
@@ -82,11 +130,65 @@ class TestHistory:
         )
         return h
 
+    def test_cc_history_a(self):
+        h = self.make_history_a()
+        assert check_CC(h, RWMemorySpecification()) is True
+
+    def test_cm_history_a(self):
+        h = self.make_history_a()
+        assert check_CM(h, RWMemorySpecification()) is True
+
+    def test_cv_history_a(self):
+        h = self.make_history_a()
+        assert check_CV(h, RWMemorySpecification()) is False
+
+    def test_cc_history_b(self):
+        h = self.make_history_b()
+        assert check_CC(h, RWMemorySpecification()) is True
+
+    def test_cm_history_b(self):
+        h = self.make_history_b()
+        assert check_CM(h, RWMemorySpecification()) is False
+
+    def test_cv_history_b(self):
+        h = self.make_history_b()
+        assert check_CV(h, RWMemorySpecification()) is True
+
     def test_cc_history_c(self):
         h = self.make_history_c()
-        assert check_CC(h, RWMemorySpecification())
+        assert check_CC(h, RWMemorySpecification()) is True
+
+    def test_cm_history_c(self):
+        h = self.make_history_c()
+        assert check_CM(h, RWMemorySpecification()) is False
+
+    def test_cv_history_c(self):
+        h = self.make_history_c()
+        assert check_CV(h, RWMemorySpecification()) is False
+
+    def test_cc_history_d(self):
+        h = self.make_history_d()
+        assert check_CC(h, RWMemorySpecification()) is True
+
+    def test_cm_history_d(self):
+        h = self.make_history_d()
+        assert check_CM(h, RWMemorySpecification()) is True
+
+    def test_cv_history_d(self):
+        h = self.make_history_d()
+        assert check_CV(h, RWMemorySpecification()) is True
 
     @pytest.mark.slow()
     def test_cc_history_e(self):
         h = self.make_history_e()
-        assert not check_CC(h, RWMemorySpecification())
+        assert check_CC(h, RWMemorySpecification()) is False
+
+    @pytest.mark.slow()
+    def test_cm_history_e(self):
+        h = self.make_history_e()
+        assert check_CM(h, RWMemorySpecification()) is False
+
+    @pytest.mark.slow()
+    def test_cv_history_e(self):
+        h = self.make_history_e()
+        assert check_CV(h, RWMemorySpecification()) is False
