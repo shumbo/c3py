@@ -10,17 +10,17 @@ class TestPoset:
         poset.link("C", "D")
         poset.link("D", "B")
         poset.link("D", "E")
-        assert poset.predecessors("A") == set()
-        assert poset.predecessors("B") == {"A", "D", "C"}
-        assert poset.predecessors("C") == set()
-        assert poset.predecessors("D") == {"C"}
-        assert poset.predecessors("E") == {"D", "C"}
+        assert poset.predecessors("A") == {"A"}
+        assert poset.predecessors("B") == {"A", "B", "D", "C"}
+        assert poset.predecessors("C") == {"C"}
+        assert poset.predecessors("D") == {"C", "D"}
+        assert poset.predecessors("E") == {"D", "C", "E"}
 
-        assert poset.successors("A") == {"B"}
-        assert poset.successors("B") == set()
-        assert poset.successors("C") == {"D", "B", "E"}
-        assert poset.successors("D") == {"B", "E"}
-        assert poset.successors("E") == set()
+        assert poset.successors("A") == {"A", "B"}
+        assert poset.successors("B") == {"B"}
+        assert poset.successors("C") == {"C", "D", "B", "E"}
+        assert poset.successors("D") == {"D", "B", "E"}
+        assert poset.successors("E") == {"E"}
 
     def test_order(self):
         poset = Poset({"a1", "b1", "b2", "b3"})

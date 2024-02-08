@@ -24,6 +24,15 @@ class Poset:
         self.G.add_edge(a, b)
 
     def predecessors(self, node: str) -> set[str]:
+        """
+        Returns a set of all predecessors of the given node in the poset.
+
+        Parameters:
+            node (str): The node for which to find predecessors.
+
+        Returns:
+            set[str]: A set of all predecessors of the given node. The set will contain the node itself.
+        """
         predecessors = {*()}
         added = set()
         q = deque([node])
@@ -34,11 +43,18 @@ class Poset:
                 if p not in added:
                     added.add(p)
                     q.append(p)
-        # omit node itself
-        predecessors.remove(node)
         return predecessors
 
     def successors(self, node: str) -> set[str]:
+        """
+        Returns the set of successors of the given node in the poset.
+
+        Parameters:
+        - node (str): The node for which to find the successors.
+
+        Returns:
+        - set[str]: The set of successors of the given node. The set will contain the node itself.
+        """
         successors = {*()}
         added = set()
         q = deque([node])
@@ -49,8 +65,6 @@ class Poset:
                 if p not in added:
                     added.add(p)
                     q.append(p)
-        # omit node itself
-        successors.remove(node)
         return successors
 
     def elements(self) -> set[str]:
@@ -66,9 +80,7 @@ class Poset:
         if (a, b) in self.asymmetry_violation_cache:
             return False
         p = self.predecessors(a)
-        p.add(a)
         s = self.successors(b)
-        s.add(b)
         if len(p.intersection(s)) > 0:
             self.asymmetry_violation_cache.add((a, b))
             return False
@@ -76,9 +88,7 @@ class Poset:
 
     def order_force(self, a: str, b: str):
         p = self.predecessors(a)
-        p.add(a)
         s = self.successors(b)
-        s.add(b)
         for src, dst in product(p, s):
             self.link(src, dst)
 

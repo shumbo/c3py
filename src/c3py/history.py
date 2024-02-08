@@ -62,7 +62,6 @@ class History:
         Because `arb` is a strict total order, this function returns a history as a list of `Instruction`s and `Operation`s.
         """
         p = self.poset.predecessors(op_id)
-        p.add(op_id)
         # filter out operations that are not in the causal history
         arb = [o for o in arb if o in p]
         idx = arb.index(op_id)
@@ -160,7 +159,6 @@ def check_CM(h: History, spec: Specification) -> bool:
             ch = deepcopy(h)
             ch.poset = co
             p = ch.poset.predecessors(op_id)
-            p.add(op_id)
             ch = ch.causal_hist(op_id, p)
             ros = [*ch.poset.all_topological_sorts()]
             logger.debug(f"    {len(ros)} possible topological orderings")
