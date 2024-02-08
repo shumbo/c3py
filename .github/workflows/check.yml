@@ -21,7 +21,7 @@ jobs:
         run: rye lint
 
       - name: Run tests
-        run: rye run pytest
+        run: rye run pytest -n auto
 
       - name: Run slow tests
-        run: rye run pytest -m slow --slow
+        run: rye run pytest -m slow --slow -n auto
