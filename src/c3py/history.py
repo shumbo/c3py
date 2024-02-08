@@ -63,7 +63,8 @@ class History:
         """
         p = self.poset.predecessors(op_id)
         p.add(op_id)
-        arb = list(filter(lambda o: o in p, arb))
+        # filter out operations that are not in the causal history
+        arb = [o for o in arb if o in p]
         idx = arb.index(op_id)
         history: list[Instruction | Operation] = [
             self.label[o].to_instruction() for o in arb[: (idx + 1)]
