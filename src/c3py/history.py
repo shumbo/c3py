@@ -162,7 +162,7 @@ class CMResult(NamedTuple):
     serializations: dict[str, list[str]] | None
 
 
-def check_CM(h: History, spec: Specification) -> bool:
+def check_CM(h: History, spec: Specification) -> CMResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         all_op_satisfied = True
@@ -203,7 +203,7 @@ class CCvResult(NamedTuple):
     arb: list[str] | None
 
 
-def check_CCv(h: History, spec: Specification) -> bool:
+def check_CCv(h: History, spec: Specification) -> CCvResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         arbs = co.all_topological_sorts()

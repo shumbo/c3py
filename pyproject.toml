@@ -21,6 +21,7 @@ dev-dependencies = [
     "pyinstrument>=4.6.2",
     "pytest-skip-slow>=0.0.5",
     "pytest-xdist>=3.5.0",
+    "notebook>=7.1.0",
 ]
 
 [tool.hatch.metadata]

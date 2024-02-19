@@ -137,4 +137,5 @@ class Poset:
         return nx.all_topological_sorts(self.G)
 
     def visualize(self):
-        return nx.nx_pydot.to_pydot(self.G)
+        TR = nx.transitive_reduction(self.G)
+        return nx.nx_pydot.to_pydot(TR)
