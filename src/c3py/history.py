@@ -96,7 +96,7 @@ class RWMemorySpecification(Specification):
 
     def step(
         self, state: MappingProxyType, instr: Instruction
-    ) -> (MappingProxyType, Operation):
+    ) -> tuple[MappingProxyType, Operation]:
         match instr.method:
             case "wr":
                 (key, value) = instr.arg
@@ -114,10 +114,17 @@ class RWMemorySpecification(Specification):
 # NOTE: `check_CC` and `check_CM` share the common basic structure, but not sure if it makes sense to merge the two functions
 
 
-def check_CC(h: History, spec: Specification) -> bool:
+class CCResult(NamedTuple):
+    is_CC: bool
+    co: Poset | None
+    serializations: dict[str, list[str]] | None
+
+
+def check_CC(h: History, spec: Specification) -> CCResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         all_op_satisfied = True
+        serializations: dict[str, list[str]] = dict()
         for op_id in co.elements():
             logger.debug(f"    focus on {op_id}: {h.label[op_id]}")
             exists_valid_topological_sort = False
@@ -136,6 +143,7 @@ def check_CC(h: History, spec: Specification) -> bool:
                     logger.debug("        satisfied")
                     logger.info(f"        found satisfying serialization: {ro}")
                     exists_valid_topological_sort = True
+                    serializations[op_id] = ro
                     break
                 else:
                     logger.debug("        not satisfied")
@@ -144,14 +152,21 @@ def check_CC(h: History, spec: Specification) -> bool:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return True
-    return False
+            return CCResult(True, co, serializations)
+    return CCResult(False, None, None)
+
+
+class CMResult(NamedTuple):
+    is_CM: bool
+    co: Poset | None
+    serializations: dict[str, list[str]] | None
 
 
 def check_CM(h: History, spec: Specification) -> bool:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         all_op_satisfied = True
+        serializations: dict[str, list[str]] = dict()
         for op_id in co.elements():
             logger.debug(f"    focus on {op_id}: {h.label[op_id]}")
             exists_valid_topological_sort = False
@@ -169,6 +184,7 @@ def check_CM(h: History, spec: Specification) -> bool:
                 if spec.satisfies(log):
                     logger.debug("        satisfied")
                     exists_valid_topological_sort = True
+                    serializations[op_id] = ro
                     break
                 else:
                     logger.debug("        not satisfied")
@@ -177,11 +193,17 @@ def check_CM(h: History, spec: Specification) -> bool:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return True
-    return False
+            return CMResult(True, co, serializations)
+    return CMResult(False, None, None)
 
 
-def check_CV(h: History, spec: Specification) -> bool:
+class CCvResult(NamedTuple):
+    is_CCv: bool
+    co: Poset | None
+    arb: list[str] | None
+
+
+def check_CCv(h: History, spec: Specification) -> bool:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         arbs = co.all_topological_sorts()
@@ -201,5 +223,5 @@ def check_CV(h: History, spec: Specification) -> bool:
                 else:
                     logger.debug("        satisfied")
             if all_op_satisfied:
-                return True
-    return False
+                return CCvResult(True, co, arb)
+    return CCvResult(False, None, None)

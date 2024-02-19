@@ -7,7 +7,7 @@ from c3py.history import (
     RWMemorySpecification,
     check_CC,
     check_CM,
-    check_CV,
+    check_CCv,
 )
 
 
@@ -132,66 +132,66 @@ class TestHistory:
 
     def test_cc_history_a(self):
         h = self.make_history_a()
-        assert check_CC(h, RWMemorySpecification()) is True
+        assert check_CC(h, RWMemorySpecification()).is_CC is True
 
     def test_cm_history_a(self):
         h = self.make_history_a()
-        assert check_CM(h, RWMemorySpecification()) is True
+        assert check_CM(h, RWMemorySpecification()).is_CM is True
 
     def test_cv_history_a(self):
         h = self.make_history_a()
-        assert check_CV(h, RWMemorySpecification()) is False
+        assert check_CCv(h, RWMemorySpecification()).is_CCv is False
 
     def test_cc_history_b(self):
         h = self.make_history_b()
-        assert check_CC(h, RWMemorySpecification()) is True
+        assert check_CC(h, RWMemorySpecification()).is_CC is True
 
     def test_cm_history_b(self):
         h = self.make_history_b()
-        assert check_CM(h, RWMemorySpecification()) is False
+        assert check_CM(h, RWMemorySpecification()).is_CM is False
 
     def test_cv_history_b(self):
         h = self.make_history_b()
-        assert check_CV(h, RWMemorySpecification()) is True
+        assert check_CCv(h, RWMemorySpecification()).is_CCv is True
 
     def test_cc_history_c(self):
         h = self.make_history_c()
-        assert check_CC(h, RWMemorySpecification()) is True
+        assert check_CC(h, RWMemorySpecification()).is_CC is True
 
     def test_cm_history_c(self):
         h = self.make_history_c()
-        assert check_CM(h, RWMemorySpecification()) is False
+        assert check_CM(h, RWMemorySpecification()).is_CM is False
 
     def test_cv_history_c(self):
         h = self.make_history_c()
-        assert check_CV(h, RWMemorySpecification()) is False
+        assert check_CCv(h, RWMemorySpecification()).is_CCv is False
 
     @pytest.mark.slow()
     def test_cc_history_d(self):
         h = self.make_history_d()
-        assert check_CC(h, RWMemorySpecification()) is True
+        assert check_CC(h, RWMemorySpecification()).is_CC is True
 
     @pytest.mark.slow()
     def test_cm_history_d(self):
         h = self.make_history_d()
-        assert check_CM(h, RWMemorySpecification()) is True
+        assert check_CM(h, RWMemorySpecification()).is_CM is True
 
     @pytest.mark.slow()
     def test_cv_history_d(self):
         h = self.make_history_d()
-        assert check_CV(h, RWMemorySpecification()) is True
+        assert check_CCv(h, RWMemorySpecification()).is_CCv is True
 
     @pytest.mark.slow()
     def test_cc_history_e(self):
         h = self.make_history_e()
-        assert check_CC(h, RWMemorySpecification()) is False
+        assert check_CC(h, RWMemorySpecification()).is_CC is False
 
     @pytest.mark.slow()
     def test_cm_history_e(self):
         h = self.make_history_e()
-        assert check_CM(h, RWMemorySpecification()) is False
+        assert check_CM(h, RWMemorySpecification()).is_CM is False
 
     @pytest.mark.slow()
     def test_cv_history_e(self):
         h = self.make_history_e()
-        assert check_CV(h, RWMemorySpecification()) is False
+        assert check_CCv(h, RWMemorySpecification()).is_CCv is False

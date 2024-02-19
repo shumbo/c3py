@@ -9,20 +9,44 @@
 
 -e file:.
 contourpy==1.2.0
+    # via matplotlib
 cycler==0.12.1
+    # via matplotlib
 fonttools==4.47.2
+    # via matplotlib
 graphviz==0.20.1
+    # via c3py
 kiwisolver==1.4.5
+    # via matplotlib
 matplotlib==3.8.2
+    # via networkx
 networkx==3.2.1
+    # via c3py
 numpy==1.26.3
+    # via contourpy
+    # via matplotlib
+    # via networkx
+    # via pandas
+    # via scipy
 packaging==23.2
+    # via matplotlib
 pandas==2.2.0
+    # via networkx
 pillow==10.2.0
+    # via matplotlib
 pydot==2.0.0
+    # via c3py
 pyparsing==3.1.1
+    # via matplotlib
+    # via pydot
 python-dateutil==2.8.2
+    # via matplotlib
+    # via pandas
 pytz==2024.1
+    # via pandas
 scipy==1.12.0
+    # via networkx
 six==1.16.0
+    # via python-dateutil
 tzdata==2023.4
+    # via pandas
