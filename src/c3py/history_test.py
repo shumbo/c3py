@@ -6,8 +6,8 @@ from c3py.history import (
     Operation,
     RWMemorySpecification,
     check_CC,
-    check_CM,
     check_CCv,
+    check_CM,
 )
 
 
