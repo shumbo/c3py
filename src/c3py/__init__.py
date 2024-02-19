@@ -3,6 +3,6 @@ from .history import (  # noqa: F401
     CCvResult,
     CMResult,
     check_CC,
-    check_CM,
     check_CCv,
+    check_CM,
 )
