@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Self
 
 from c3py.poset import Poset
 
@@ -62,7 +62,7 @@ class History:
             for i in range(len(ops) - 1):
                 self.poset.order_try(f"{process}.{i + 1}", f"{process}.{i + 2}")
 
-    def causal_hist(self, op_id: str, ret_set: set[str]):
+    def causal_hist(self, op_id: str, ret_set: set[str]) -> Self:
         ch = deepcopy(self)
         p = ch.poset.predecessors(op_id)
         ch.operations = p
