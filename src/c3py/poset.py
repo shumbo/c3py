@@ -1,8 +1,10 @@
 from collections import deque
 from copy import deepcopy
 from itertools import permutations, product
+from typing import Any
 
 import networkx as nx
+import pydot
 
 
 class Poset:
@@ -136,6 +138,8 @@ class Poset:
     def all_topological_sorts(self):
         return nx.all_topological_sorts(self.G)
 
-    def visualize(self):
+    def visualize(self, mapping: Any) -> pydot.Dot:
         TR = nx.transitive_reduction(self.G)
+        if mapping is not None:
+            TR = nx.relabel_nodes(TR, mapping)
         return nx.nx_pydot.to_pydot(TR)

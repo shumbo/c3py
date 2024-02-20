@@ -4,6 +4,8 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, NamedTuple, Self
 
+import pydot
+
 from c3py.poset import Poset
 
 logger = logging.getLogger(__name__)
@@ -35,10 +37,8 @@ class Operation(NamedTuple):
         prefix = f"{self.op_id}:" if self.op_id is not None else ""
         # if arg is a collection, print as a comma-separated list
         if isinstance(self.arg, (list, tuple)):
-            return (
-                prefix + f"{self.method}({', '.join(map(str, self.arg))})->{self.ret}"
-            )
-        return prefix + f"{self.method}({self.arg})->{self.ret}"
+            return prefix + f"{self.method}({', '.join(map(str, self.arg))})▷{self.ret}"
+        return prefix + f"{self.method}({self.arg})▷{self.ret}"
 
 
 class History:
@@ -88,6 +88,11 @@ class History:
         history[idx] = self.label[op_id]
         return history
 
+    def visualize(self, include_label: bool = True) -> pydot.Dot:
+        label = {op_id: f'"{str(op)}"' for op_id, op in self.label.items()}
+        dot = self.poset.visualize(label if include_label else None)
+        return dot
+
 
 class Specification(ABC):
     @abstractmethod
@@ -134,7 +139,7 @@ class RWMemorySpecification(Specification):
 
 class CCResult(NamedTuple):
     is_CC: bool
-    co: Poset | None
+    causal_history: History | None
     serializations: dict[str, list[Operation | Instruction]] | None
 
 
@@ -170,13 +175,15 @@ def check_CC(h: History, spec: Specification) -> CCResult:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return CCResult(True, co, serializations)
+            ch = deepcopy(h)
+            ch.poset = co
+            return CCResult(True, ch, serializations)
     return CCResult(False, None, None)
 
 
 class CMResult(NamedTuple):
     is_CM: bool
-    co: Poset | None
+    causal_history: History | None
     serializations: dict[str, list[Operation | Instruction]] | None | None
 
 
@@ -211,13 +218,15 @@ def check_CM(h: History, spec: Specification) -> CMResult:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return CMResult(True, co, serializations)
+            ch = deepcopy(h)
+            ch.poset = co
+            return CMResult(True, ch, serializations)
     return CMResult(False, None, None)
 
 
 class CCvResult(NamedTuple):
     is_CCv: bool
-    co: Poset | None
+    causal_history: History | None
     arbitrations: dict[str, list[Instruction | Operation]] | None
 
 
@@ -243,5 +252,7 @@ def check_CCv(h: History, spec: Specification) -> CCvResult:
                     logger.debug("        satisfied")
                     arbitrations[op_id] = log
             if all_op_satisfied:
-                return CCvResult(True, co, arbitrations)
+                ch = deepcopy(h)
+                ch.poset = co
+                return CCvResult(True, ch, arbitrations)
     return CCvResult(False, None, None)
