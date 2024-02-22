@@ -256,4 +256,4 @@ def check_CCv(h: History, spec: Specification) -> CCvResult:
                 ch = deepcopy(h)
                 ch.poset = co
                 return CCvResult(True, ch, [h.label[s] for s in arb], serializations)
-    return CCvResult(False, None, None)
+    return CCvResult(False, None, None, None)
