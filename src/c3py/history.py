@@ -2,7 +2,9 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Self
+
+import pydot
 
 from c3py.poset import Poset
 
@@ -12,19 +14,35 @@ logger = logging.getLogger(__name__)
 class Instruction(NamedTuple):
     method: Any
     arg: Any
+    op_id: str | None = None
+
+    def __repr__(self) -> str:
+        prefix = f"{self.op_id}:" if self.op_id is not None else ""
+        # if arg is a collection, print as a comma-separated list
+        if isinstance(self.arg, (list, tuple)):
+            return prefix + f"{self.method}({', '.join(map(str, self.arg))})"
+        return prefix + f"{self.method}({self.arg})"
 
 
 class Operation(NamedTuple):
     method: Any
     arg: Any
     ret: Any = None
+    op_id: str | None = None
 
     def to_instruction(self):
-        return Instruction(self.method, self.arg)
+        return Instruction(self.method, self.arg, self.op_id)
+
+    def __repr__(self) -> str:
+        prefix = f"{self.op_id}:" if self.op_id is not None else ""
+        # if arg is a collection, print as a comma-separated list
+        if isinstance(self.arg, (list, tuple)):
+            return prefix + f"{self.method}({', '.join(map(str, self.arg))})▷{self.ret}"
+        return prefix + f"{self.method}({self.arg})▷{self.ret}"
 
 
 class History:
-    def __init__(self, data):
+    def __init__(self, data: dict[str, list[Operation]]):
         # validation
         assert isinstance(data, dict), "data should be a dictionary"
         for _, ops in data.items():
@@ -32,22 +50,21 @@ class History:
                 assert isinstance(op, Operation), "invalid operation"
 
         self.operations = set()
-        self.label = dict[str, Operation]()
+        self.label = dict[str, Operation | Instruction]()
         for process, ops in data.items():
             for i in range(len(ops)):
                 op_id = f"{process}.{i + 1}"
                 self.operations.add(op_id)
-                self.label[op_id] = ops[i]
+                self.label[op_id] = ops[i]._replace(op_id=op_id)
 
         self.poset = Poset(self.operations)
         for process, ops in data.items():
             for i in range(len(ops) - 1):
                 self.poset.order_try(f"{process}.{i + 1}", f"{process}.{i + 2}")
 
-    def causal_hist(self, op_id: str, ret_set: set[str]):
+    def causal_hist(self, op_id: str, ret_set: set[str]) -> Self:
         ch = deepcopy(self)
         p = ch.poset.predecessors(op_id)
-        p.add(op_id)
         ch.operations = p
         ch.poset = ch.poset.subset(p)
         ch.label = {
@@ -71,6 +88,11 @@ class History:
         history[idx] = self.label[op_id]
         return history
 
+    def visualize(self, include_label: bool = True) -> pydot.Dot:
+        label = {op_id: f'"{str(op)}"' for op_id, op in self.label.items()}
+        dot = self.poset.visualize(label if include_label else None)
+        return dot
+
 
 class Specification(ABC):
     @abstractmethod
@@ -78,14 +100,15 @@ class Specification(ABC):
         pass
 
     @abstractmethod
-    def step(self, state, instr: Instruction):
+    def step(self, state, instr: Instruction) -> tuple[Any, Operation]:
         pass
 
     def satisfies(self, log):
         state = self.start()
         for instr in log:
             state, op = self.step(state, instr)
-            if isinstance(instr, Operation) and op != instr:
+            # if the instruction has a return value, check if it matches the executed operation
+            if isinstance(instr, Operation) and (op.ret != instr.ret):
                 return False
         return True
 
@@ -116,15 +139,15 @@ class RWMemorySpecification(Specification):
 
 class CCResult(NamedTuple):
     is_CC: bool
-    co: Poset | None
-    serializations: dict[str, list[str]] | None
+    causal_history: History | None
+    serializations: dict[str, list[Operation | Instruction]] | None
 
 
 def check_CC(h: History, spec: Specification) -> CCResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         all_op_satisfied = True
-        serializations: dict[str, list[str]] = dict()
+        serializations: dict[str, list[Operation | Instruction]] | None = dict()
         for op_id in co.elements():
             logger.debug(f"    focus on {op_id}: {h.label[op_id]}")
             exists_valid_topological_sort = False
@@ -143,7 +166,7 @@ def check_CC(h: History, spec: Specification) -> CCResult:
                     logger.debug("        satisfied")
                     logger.info(f"        found satisfying serialization: {ro}")
                     exists_valid_topological_sort = True
-                    serializations[op_id] = ro
+                    serializations[op_id] = log
                     break
                 else:
                     logger.debug("        not satisfied")
@@ -152,29 +175,31 @@ def check_CC(h: History, spec: Specification) -> CCResult:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return CCResult(True, co, serializations)
+            ch = deepcopy(h)
+            ch.poset = co
+            return CCResult(True, ch, serializations)
     return CCResult(False, None, None)
 
 
 class CMResult(NamedTuple):
     is_CM: bool
-    co: Poset | None
-    serializations: dict[str, list[str]] | None
+    causal_history: History | None
+    serializations: dict[str, list[Operation | Instruction]] | None | None
 
 
-def check_CM(h: History, spec: Specification) -> bool:
+def check_CM(h: History, spec: Specification) -> CMResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         all_op_satisfied = True
-        serializations: dict[str, list[str]] = dict()
+        serializations: dict[str, list[Operation | Instruction]] | None = dict()
         for op_id in co.elements():
             logger.debug(f"    focus on {op_id}: {h.label[op_id]}")
             exists_valid_topological_sort = False
 
+            po_past = h.poset.predecessors(op_id)
             ch = deepcopy(h)
             ch.poset = co
-            p = ch.poset.predecessors(op_id)
-            ch = ch.causal_hist(op_id, p)
+            ch = ch.causal_hist(op_id, po_past)
             ros = [*ch.poset.all_topological_sorts()]
             logger.debug(f"    {len(ros)} possible topological orderings")
 
@@ -184,7 +209,7 @@ def check_CM(h: History, spec: Specification) -> bool:
                 if spec.satisfies(log):
                     logger.debug("        satisfied")
                     exists_valid_topological_sort = True
-                    serializations[op_id] = ro
+                    serializations[op_id] = log
                     break
                 else:
                     logger.debug("        not satisfied")
@@ -193,20 +218,24 @@ def check_CM(h: History, spec: Specification) -> bool:
                 all_op_satisfied = False
                 break
         if all_op_satisfied:
-            return CMResult(True, co, serializations)
+            ch = deepcopy(h)
+            ch.poset = co
+            return CMResult(True, ch, serializations)
     return CMResult(False, None, None)
 
 
 class CCvResult(NamedTuple):
     is_CCv: bool
-    co: Poset | None
-    arb: list[str] | None
+    causal_history: History | None
+    arbitration: list[Operation] | None
+    serializations: dict[str, list[Instruction | Operation]] | None
 
 
-def check_CCv(h: History, spec: Specification) -> bool:
+def check_CCv(h: History, spec: Specification) -> CCvResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         arbs = co.all_topological_sorts()
+        serializations = {}
         for j, arb in enumerate(arbs):
             logger.debug(f"    check arb #{j}: {arb}")
             all_op_satisfied = True
@@ -222,6 +251,9 @@ def check_CCv(h: History, spec: Specification) -> bool:
                     break
                 else:
                     logger.debug("        satisfied")
+                    serializations[op_id] = log
             if all_op_satisfied:
-                return CCvResult(True, co, arb)
-    return CCvResult(False, None, None)
+                ch = deepcopy(h)
+                ch.poset = co
+                return CCvResult(True, ch, [h.label[s] for s in arb], serializations)
+    return CCvResult(False, None, None, None)
