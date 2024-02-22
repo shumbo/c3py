@@ -196,10 +196,10 @@ def check_CM(h: History, spec: Specification) -> CMResult:
             logger.debug(f"    focus on {op_id}: {h.label[op_id]}")
             exists_valid_topological_sort = False
 
+            po_past = h.poset.predecessors(op_id)
             ch = deepcopy(h)
             ch.poset = co
-            p = ch.poset.predecessors(op_id)
-            ch = ch.causal_hist(op_id, p)
+            ch = ch.causal_hist(op_id, po_past)
             ros = [*ch.poset.all_topological_sorts()]
             logger.debug(f"    {len(ros)} possible topological orderings")
 
@@ -227,14 +227,15 @@ def check_CM(h: History, spec: Specification) -> CMResult:
 class CCvResult(NamedTuple):
     is_CCv: bool
     causal_history: History | None
-    arbitrations: dict[str, list[Instruction | Operation]] | None
+    arbitration: list[Operation] | None
+    serializations: dict[str, list[Instruction | Operation]] | None
 
 
 def check_CCv(h: History, spec: Specification) -> CCvResult:
     for i, co in enumerate(h.poset.refinements()):
         logger.debug(f"check co #{i}: {co}")
         arbs = co.all_topological_sorts()
-        arbitrations = {}
+        serializations = {}
         for j, arb in enumerate(arbs):
             logger.debug(f"    check arb #{j}: {arb}")
             all_op_satisfied = True
@@ -250,9 +251,9 @@ def check_CCv(h: History, spec: Specification) -> CCvResult:
                     break
                 else:
                     logger.debug("        satisfied")
-                    arbitrations[op_id] = log
+                    serializations[op_id] = log
             if all_op_satisfied:
                 ch = deepcopy(h)
                 ch.poset = co
-                return CCvResult(True, ch, arbitrations)
+                return CCvResult(True, ch, [h.label[s] for s in arb], serializations)
     return CCvResult(False, None, None)
