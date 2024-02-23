@@ -23,6 +23,9 @@ dev-dependencies = [
     "pytest-xdist>=3.5.0",
     "notebook>=7.1.0",
 ]
+[tool.rye.scripts]
+test = "pytest"
+test-all = "pytest -n auto --slow"
 
 [tool.hatch.metadata]
 allow-direct-references = true
