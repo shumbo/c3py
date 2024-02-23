@@ -107,7 +107,8 @@ class Poset:
         elements = set(self.G.nodes)
         pairs = set(permutations(elements, 2))
         existing_pairs = {e for e in self.G.edges}
-        pairs = list(pairs - existing_pairs)
+        reverse_existing_pairs = {(b, a) for a, b in existing_pairs}
+        pairs = list(pairs - existing_pairs - reverse_existing_pairs)
         pair_count = len(pairs)  # number of pairs
         r = set()  # refinements
         q = deque([(self, 0)])
