@@ -61,6 +61,20 @@ class History:
         for process, ops in data.items():
             for i in range(len(ops) - 1):
                 self.poset.order_try(f"{process}.{i + 1}", f"{process}.{i + 2}")
+    
+    # co = (po U wr)^+
+    def causal_order(self):
+        ch = deepcopy(self)
+        for id1, op1 in self.label.items():
+            if op1.method == "wr":
+                continue
+
+            arg = op1.arg
+            ret = op1.ret
+            for id2, op2 in self.label.items():
+                if op2.method == "wr" and op2.arg == (arg, ret):
+                    ch.poset.link(id2, id1)
+        return ch
 
     def causal_hist(self, op_id: str, ret_set: set[str]) -> Self:
         ch = deepcopy(self)
