@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, NamedTuple, Self
-import networkx as nx
 
+import networkx as nx
 import pydot
 
 from c3py.poset import Poset

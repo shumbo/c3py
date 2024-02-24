@@ -1,3 +1,4 @@
+import networkx as nx
 import pytest
 
 from c3py.history import (
@@ -5,6 +6,7 @@ from c3py.history import (
     Instruction,
     Operation,
     RWMemorySpecification,
+    WRMemoryHistory,
     check_CC,
     check_CCv,
     check_CM,
@@ -195,3 +197,67 @@ class TestHistory:
     def test_cv_history_e(self):
         h = self.make_history_e()
         assert check_CCv(h, RWMemorySpecification()).is_CCv is False
+
+
+class TestWRMemoryHistory:
+    def make_wrhistory_a(self):
+        h = WRMemoryHistory(
+            {
+                "a": [Operation("wr", ("x", 1)), Operation("rd", "x", 2)],
+                "b": [Operation("wr", ("x", 2)), Operation("rd", "x", 1)],
+            }
+        )
+        return h
+
+    def make_wrhistory_b(self):
+        h = WRMemoryHistory(
+            {
+                "a": [
+                    Operation("wr", ("z", 1)),
+                    Operation("wr", ("x", 1)),
+                    Operation("wr", ("y", 1)),
+                ],
+                "b": [
+                    Operation("wr", ("x", 2)),
+                    Operation("rd", "z", None),  # default value (0 in paper)
+                    Operation("rd", "y", 1),
+                    Operation("rd", "x", 2),
+                ],
+            }
+        )
+        return h
+
+    def test_check_differentiated_h(self):
+        h_b = self.make_wrhistory_b()
+        assert h_b.check_differentiated_h()
+
+        not_diff_h = WRMemoryHistory(
+            {
+                "a": [Operation("wr", ("x", 1)), Operation("rd", "x", 2)],
+                "b": [Operation("wr", ("x", 1)), Operation("rd", "x", 1)],
+            }
+        )
+        assert not not_diff_h.check_differentiated_h()
+
+    def test_make_co(self):
+        h_a = self.make_wrhistory_a()
+        h_a = h_a.make_co()
+        tc_a = nx.transitive_closure(h_a.poset.G)
+        correct_tc = set(
+            (
+                ("a.1", "a.2"),
+                ("b.1", "b.2"),
+                ("a.1", "b.2"),
+                ("b.1", "a.2"),
+            )
+        )
+        assert set(tc_a.edges(tc_a)) == correct_tc
+
+        cyclic_h = WRMemoryHistory(
+            {
+                "a": [Operation("rd", "x", 1), Operation("wr", ("x", 1))],
+                "b": [Operation("wr", ("x", 2)), Operation("rd", "x", 2)],
+            }
+        )
+        cyclic_h = cyclic_h.make_co()
+        assert not cyclic_h
