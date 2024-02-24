@@ -61,20 +61,6 @@ class History:
         for process, ops in data.items():
             for i in range(len(ops) - 1):
                 self.poset.order_try(f"{process}.{i + 1}", f"{process}.{i + 2}")
-    
-    # co = (po U wr)^+
-    def causal_order(self):
-        ch = deepcopy(self)
-        for id1, op1 in self.label.items():
-            if op1.method == "wr":
-                continue
-
-            arg = op1.arg
-            ret = op1.ret
-            for id2, op2 in self.label.items():
-                if op2.method == "wr" and op2.arg == (arg, ret):
-                    ch.poset.link(id2, id1)
-        return ch
 
     def causal_hist(self, op_id: str, ret_set: set[str]) -> Self:
         ch = deepcopy(self)
@@ -106,6 +92,37 @@ class History:
         label = {op_id: f'"{str(op)}"' for op_id, op in self.label.items()}
         dot = self.poset.visualize(label if include_label else None)
         return dot
+
+
+class WRMemoryHistory(History):
+    def check_differentiated_h(self) -> bool:
+        wr = set[Operation.arg]()
+        for id, op in self.label.items():
+            if op.method == "wr":
+                if op.arg in wr:
+                    return False
+                wr.add(op.arg)
+        return True
+
+    def make_co(self) -> Self | None:
+        """
+        co = (po U wr)^+
+        po is checked in History.__init__
+        so just check wr here
+        """
+        wr = dict[tuple[Any, Any], str]()
+        for id, op in self.label.items():
+            if op.method == "wr":
+                wr[op.arg] = id
+
+        ch = deepcopy(self)
+        for id, op in self.label.items():
+            if op.method == "rd":
+                src = wr.get((op.arg, op.ret))
+                if not src:
+                    continue
+                ch.poset.link(src, id)
+        return ch
 
 
 class Specification(ABC):
