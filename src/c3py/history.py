@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, NamedTuple, Self
+import networkx as nx
 
 import pydot
 
@@ -122,6 +123,9 @@ class WRMemoryHistory(History):
                 if not src:
                     continue
                 ch.poset.link(src, id)
+
+        if not nx.is_directed_acyclic_graph(ch.poset.G):
+            return None
         return ch
 
 
