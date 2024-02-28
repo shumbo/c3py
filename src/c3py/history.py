@@ -4,7 +4,6 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, NamedTuple, Self
 
-import networkx as nx
 import pydot
 
 from c3py.poset import Poset
@@ -93,40 +92,6 @@ class History:
         label = {op_id: f'"{str(op)}"' for op_id, op in self.label.items()}
         dot = self.poset.visualize(label if include_label else None)
         return dot
-
-
-class WRMemoryHistory(History):
-    def check_differentiated_h(self) -> bool:
-        wr = set[Operation.arg]()
-        for id, op in self.label.items():
-            if op.method == "wr":
-                if op.arg in wr:
-                    return False
-                wr.add(op.arg)
-        return True
-
-    def make_co(self) -> Self | None:
-        """
-        co = (po U wr)^+
-        po is checked in History.__init__
-        so just check wr here
-        """
-        wr = dict[tuple[Any, Any], str]()
-        for id, op in self.label.items():
-            if op.method == "wr":
-                wr[op.arg] = id
-
-        ch = deepcopy(self)
-        for id, op in self.label.items():
-            if op.method == "rd":
-                src = wr.get((op.arg, op.ret))
-                if not src:
-                    continue
-                ch.poset.link(src, id)
-
-        if not nx.is_directed_acyclic_graph(ch.poset.G):
-            return None
-        return ch
 
 
 class Specification(ABC):
