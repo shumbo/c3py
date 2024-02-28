@@ -78,3 +78,17 @@ class WRMemoryHistory(History):
                     return True
 
         return False
+
+    def is_thin_air_read(self) -> bool:
+        wrs: list[Operation.arg] = []
+        rds = set[(Operation.arg, Operation.ret)]()
+        for _, op in self.label.items():
+            if op.method == "wr":
+                wrs.append(op.arg)
+            else:
+                rds.add((op.arg, op.ret))
+
+        for wr in wrs:
+            rds.remove(wr)
+
+        return rds != set()

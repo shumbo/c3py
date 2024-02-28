@@ -102,3 +102,18 @@ class TestWRMemoryHistory:
         )
         h = h.make_co()
         assert h.is_write_co_init_read()
+
+    def test_is_thin_air_read_false(self):
+        h = self.make_wrhistory_a()
+        h = h.make_co()
+        assert not h.is_thin_air_read()
+
+    def test_is_thin_air_read_true(self):
+        h = WRMemoryHistory(
+            {
+                "a": [Operation("wr", ("x", 1)), Operation("rd", "x", 2)],
+                "b": [Operation("wr", ("x", 2)), Operation("rd", "y", 1)],
+            }
+        )
+        h.make_co()
+        assert h.is_thin_air_read
