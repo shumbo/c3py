@@ -40,10 +40,10 @@ class WRMemoryHistory(History):
 
         ch = deepcopy(self)
         for id, op in self.label.items():
-            if op.method == "rd":
+            if op.method == "rd" and op.ret is not None:
                 src = wr.get((op.arg, op.ret))
                 if not src:
-                    continue
+                    return BadPattern.ThinAirRead
                 ch.poset.link(src, id)
 
         if not nx.is_directed_acyclic_graph(ch.poset.G):
@@ -78,20 +78,6 @@ class WRMemoryHistory(History):
                     return True
 
         return False
-
-    def is_thin_air_read(self) -> bool:
-        wrs: list[Operation.arg] = []
-        rds = set[(Operation.arg, Operation.ret)]()
-        for _, op in self.label.items():
-            if op.method == "wr":
-                wrs.append(op.arg)
-            else:
-                rds.add((op.arg, op.ret))
-
-        for wr in wrs:
-            rds.remove(wr)
-
-        return rds != set()
 
     def is_write_co_read(self) -> bool:
         # ToDo do this in make_co
