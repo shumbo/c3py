@@ -30,6 +30,19 @@ class TestWRMemoryHistory:
         )
         return h
 
+    def make_wrhistory_e(self):
+        h = WRMemoryHistory(
+            {
+                "a": [Operation("wr", ("x", 1)), Operation("wr", ("y", 1))],
+                "b": [Operation("rd", "y", 1), Operation("wr", ("x", 2))],
+                "c": [
+                    Operation("rd", "x", 2),
+                    Operation("rd", "x", 1),
+                ],
+            }
+        )
+        return h
+
     def test_check_differentiated_h(self):
         h_b = self.make_wrhistory_b()
         assert h_b.check_differentiated_h()
@@ -117,3 +130,13 @@ class TestWRMemoryHistory:
         )
         h.make_co()
         assert h.is_thin_air_read
+
+    def test_is_write_co_read_true(self):
+        h = self.make_wrhistory_e()
+        h = h.make_co()
+        assert h.is_write_co_read()
+
+    def test_is_write_co_read_false(self):
+        h = self.make_wrhistory_a()
+        h = h.make_co()
+        assert not h.is_write_co_read()

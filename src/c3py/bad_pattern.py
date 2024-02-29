@@ -92,3 +92,28 @@ class WRMemoryHistory(History):
             rds.remove(wr)
 
         return rds != set()
+
+    def is_write_co_read(self) -> bool:
+        # ToDo do this in make_co
+        wr = dict[tuple[Any, Any], str]()
+        for id, op in self.label.items():
+            if op.method == "wr":
+                wr[op.arg] = id
+
+        wr_relations = list[tuple[str, str, str]]()  # [(var, wr1, rd1), (var, wr2, rd2), ...]
+        for id, op in self.label.items():
+            if op.method == "rd":
+                src = wr.get((op.arg, op.ret))
+                if not src:
+                    continue
+                wr_relations.append((op.arg, src, id))
+
+        for v, wr, rd in wr_relations:
+            wr_des = nx.descendants(self.poset.G, wr)
+            rd_anc = nx.ancestors(self.poset.G, rd)
+            intermediates = wr_des.intersection(rd_anc)
+            for i in intermediates:
+                if self.label[i].method == "wr" and self.label[i].arg[0] == v:
+                    return True
+
+        return False
