@@ -1,4 +1,4 @@
-from c3py.bad_pattern import BadPattern, WRMemoryHistory
+from c3py.bad_pattern import BadPattern, find_cc_bad_pattern, WRMemoryHistory
 from c3py.history import Operation
 
 
@@ -79,6 +79,7 @@ class TestWRMemoryHistory:
         h_b = self.make_wrhistory_b()
         assert h_b.check_differentiated_h()
 
+        # Todo
         not_diff_h = WRMemoryHistory(
             {
                 "a": [Operation("wr", ("x", 1)), Operation("rd", "x", 2)],
@@ -89,7 +90,7 @@ class TestWRMemoryHistory:
 
     def test_make_co_a(self):
         h = self.make_wrhistory_a()
-        h = h.make_co()
+        assert not h.bp
         assert h != BadPattern.CyclicCO
         assert h != BadPattern.ThinAirRead
         correct_co = set(
@@ -104,7 +105,7 @@ class TestWRMemoryHistory:
 
     def test_make_co_b(self):
         h = self.make_wrhistory_b()
-        h = h.make_co()
+        assert not h.bp
         assert h != BadPattern.CyclicCO
         assert h != BadPattern.ThinAirRead
         correct_co = set(
@@ -135,8 +136,7 @@ class TestWRMemoryHistory:
                 "b": [Operation("wr", ("x", 2)), Operation("rd", "x", 2)],
             }
         )
-        h = h.make_co()
-        assert h == BadPattern.CyclicCO
+        assert h.bp == BadPattern.CyclicCO
 
     def test_make_co_thin_air_read(self):
         h = WRMemoryHistory(
@@ -145,11 +145,10 @@ class TestWRMemoryHistory:
                 "b": [Operation("wr", ("x", 2)), Operation("rd", "y", 1)],
             }
         )
-        assert h.make_co() == BadPattern.ThinAirRead
+        assert h.bp == BadPattern.ThinAirRead
 
     def test_is_write_co_init_read_false(self):
         h_b = self.make_wrhistory_b()
-        h_b = h_b.make_co()
         assert not h_b.is_write_co_init_read()
 
     def test_write_co_init_read(self):
@@ -158,60 +157,47 @@ class TestWRMemoryHistory:
                 "a": [Operation("wr", ("x", 1)), Operation("rd", "x", None)]
             }
         )
-        h = h.make_co()
         assert h.is_write_co_init_read()
 
     def test_is_write_co_read_true(self):
         h = self.make_wrhistory_e()
-        h = h.make_co()
         assert h.is_write_co_read()
 
     def test_is_write_co_read_false(self):
         h = self.make_wrhistory_a()
-        h = h.make_co()
         assert not h.is_write_co_read()
 
     def test_bad_pattern_a(self):
         h = self.make_wrhistory_a()
         assert h.check_differentiated_h()
-        h = h.make_co()
-        assert h != BadPattern.CyclicCO
-        assert h != BadPattern.ThinAirRead
-        assert not h.is_write_co_init_read()
-        assert not h.is_write_co_read()
+        res = find_cc_bad_pattern(h)
+        assert res.is_CC
+        assert not res.bad_pattern
 
     def test_bad_pattern_b(self):
         h = self.make_wrhistory_b()
         assert h.check_differentiated_h()
-        h = h.make_co()
-        assert h != BadPattern.CyclicCO
-        assert h != BadPattern.ThinAirRead
-        assert not h.is_write_co_init_read()
-        assert not h.is_write_co_read()
+        res = find_cc_bad_pattern(h)
+        assert res.is_CC
+        assert not res.bad_pattern
 
     def test_bad_pattern_c(self):
         h = self.make_wrhistory_c()
         assert h.check_differentiated_h()
-        h = h.make_co()
-        assert h != BadPattern.CyclicCO
-        assert h != BadPattern.ThinAirRead
-        assert not h.is_write_co_init_read()
-        assert not h.is_write_co_read()
+        res = find_cc_bad_pattern(h)
+        assert res.is_CC
+        assert not res.bad_pattern
 
     def test_bad_pattern_d(self):
         h = self.make_wrhistory_a()
         assert h.check_differentiated_h()
-        h = h.make_co()
-        assert h != BadPattern.CyclicCO
-        assert h != BadPattern.ThinAirRead
-        assert not h.is_write_co_init_read()
-        assert not h.is_write_co_read()
+        res = find_cc_bad_pattern(h)
+        assert res.is_CC
+        assert not res.bad_pattern
 
     def test_bad_pattern_e(self):
         h = self.make_wrhistory_e()
         assert h.check_differentiated_h()
-        h = h.make_co()
-        assert h != BadPattern.CyclicCO
-        assert h != BadPattern.ThinAirRead
-        assert not h.is_write_co_init_read()
-        assert h.is_write_co_read()
+        res = find_cc_bad_pattern(h)
+        assert not res.is_CC
+        assert res.bad_pattern == BadPattern.WriteCORead

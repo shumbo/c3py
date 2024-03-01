@@ -1,6 +1,6 @@
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Self
+from typing import Any, NamedTuple, Self
 
 import networkx as nx
 
@@ -18,6 +18,11 @@ class BadPattern(Enum):
 
 
 class WRMemoryHistory(History):
+    def __init__(self, data):
+        super().__init__(data)
+        assert self.check_differentiated_h()
+        self.poset, self.bp = self.make_co()
+
     def check_differentiated_h(self) -> bool:
         wr = set[Operation.arg]()
         for id, op in self.label.items():
@@ -27,7 +32,7 @@ class WRMemoryHistory(History):
                 wr.add(op.arg)
         return True
 
-    def make_co(self) -> Self | BadPattern:
+    def make_co(self) -> tuple[Self, BadPattern]:
         """
         co = (po U wr)^+
         po is checked in History.__init__
@@ -38,24 +43,24 @@ class WRMemoryHistory(History):
             if op.method == "wr":
                 wr[op.arg] = id
 
-        ch = deepcopy(self)
+        cp = deepcopy(self.poset)
         for id, op in self.label.items():
             if op.method == "rd" and op.ret is not None:
                 src = wr.get((op.arg, op.ret))
                 if not src:
-                    return BadPattern.ThinAirRead
-                ch.poset.link(src, id)
+                    return cp, BadPattern.ThinAirRead
+                cp.link(src, id)
 
-        if not nx.is_directed_acyclic_graph(ch.poset.G):
-            return BadPattern.CyclicCO
+        if not nx.is_directed_acyclic_graph(cp.G):
+            return cp, BadPattern.CyclicCO
 
         # ensure transitivity of poset
-        tc = nx.transitive_closure(ch.poset.G, reflexive=False)
-        missing_es = tc.edges() - ch.poset.G.edges()
+        tc = nx.transitive_closure(cp.G, reflexive=False)
+        missing_es = tc.edges() - cp.G.edges()
         for e in missing_es:
-            ch.poset.link(e[0], e[1])
+            cp.link(e[0], e[1])
 
-        return ch
+        return cp, None
 
     def is_write_co_init_read(self) -> bool:
         """
@@ -103,3 +108,18 @@ class WRMemoryHistory(History):
                     return True
 
         return False
+
+
+class CCBPResult(NamedTuple):
+    is_CC: bool
+    bad_pattern: BadPattern
+
+
+def find_cc_bad_pattern(h: WRMemoryHistory) -> CCBPResult:
+    if h.bp:
+        return CCBPResult(False, h.bp)
+    if h.is_write_co_init_read():
+        return CCBPResult(False, BadPattern.WriteCOInitRead)
+    if h.is_write_co_read():
+        return CCBPResult(False, BadPattern.WriteCORead)
+    return CCBPResult(True, None)
