@@ -20,7 +20,8 @@ class Poset:
         return self == __value
 
     def __hash__(self) -> int:
-        return hash(nx.weisfeiler_lehman_graph_hash(self.G))
+        # for our purposes, we only care about the set of edges
+        return hash(frozenset(self.G.edges))
 
     def link(self, a: str, b: str):
         self.G.add_edge(a, b)
