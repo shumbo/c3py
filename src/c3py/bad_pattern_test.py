@@ -1,4 +1,9 @@
-from c3py.bad_pattern import BadPattern, find_cc_bad_pattern, WRMemoryHistory
+from c3py.bad_pattern import (
+    BadPattern,
+    WRMemoryHistory,
+    find_cc_bad_pattern,
+    find_ccv_bad_pattern,
+)
 from c3py.history import Operation
 
 
@@ -153,9 +158,7 @@ class TestWRMemoryHistory:
 
     def test_write_co_init_read(self):
         h = WRMemoryHistory(
-            {
-                "a": [Operation("wr", ("x", 1)), Operation("rd", "x", None)]
-            }
+            {"a": [Operation("wr", ("x", 1)), Operation("rd", "x", None)]}
         )
         assert h.is_write_co_init_read()
 
@@ -167,37 +170,61 @@ class TestWRMemoryHistory:
         h = self.make_wrhistory_a()
         assert not h.is_write_co_read()
 
-    def test_bad_pattern_a(self):
+    def test_cc_bad_pattern_a(self):
         h = self.make_wrhistory_a()
         assert h.check_differentiated_h()
         res = find_cc_bad_pattern(h)
         assert res.is_CC
         assert not res.bad_pattern
 
-    def test_bad_pattern_b(self):
+    def test_cc_bad_pattern_b(self):
         h = self.make_wrhistory_b()
         assert h.check_differentiated_h()
         res = find_cc_bad_pattern(h)
         assert res.is_CC
         assert not res.bad_pattern
 
-    def test_bad_pattern_c(self):
+    def test_cc_bad_pattern_c(self):
         h = self.make_wrhistory_c()
         assert h.check_differentiated_h()
         res = find_cc_bad_pattern(h)
         assert res.is_CC
         assert not res.bad_pattern
 
-    def test_bad_pattern_d(self):
-        h = self.make_wrhistory_a()
+    def test_cc_bad_pattern_d(self):
+        h = self.make_wrhistory_d()
         assert h.check_differentiated_h()
         res = find_cc_bad_pattern(h)
         assert res.is_CC
         assert not res.bad_pattern
 
-    def test_bad_pattern_e(self):
+    def test_cc_bad_pattern_e(self):
         h = self.make_wrhistory_e()
         assert h.check_differentiated_h()
         res = find_cc_bad_pattern(h)
         assert not res.is_CC
         assert res.bad_pattern == BadPattern.WriteCORead
+
+    def test_ccv_bad_pattern_a(self):
+        h = self.make_wrhistory_a()
+        res = find_ccv_bad_pattern(h)
+        assert not res.is_CCv
+        assert res.bad_pattern == BadPattern.CyclicCF
+
+    def test_ccv_bad_pattern_b(self):
+        h = self.make_wrhistory_b()
+        res = find_ccv_bad_pattern(h)
+        assert res.is_CCv
+        assert not res.bad_pattern
+
+    def test_ccv_bad_pattern_c(self):
+        h = self.make_wrhistory_c()
+        res = find_ccv_bad_pattern(h)
+        assert not res.is_CCv
+        assert res.bad_pattern == BadPattern.CyclicCF
+
+    def test_ccv_bad_pattern_d(self):
+        h = self.make_wrhistory_d()
+        res = find_ccv_bad_pattern(h)
+        assert res.is_CCv
+        assert not res.bad_pattern

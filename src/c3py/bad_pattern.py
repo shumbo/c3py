@@ -21,6 +21,8 @@ class WRMemoryHistory(History):
     def __init__(self, data):
         super().__init__(data)
         assert self.check_differentiated_h()
+        self.writes = dict[tuple[Any, Any], str]()
+        self.write_read_relations = dict[str, str]()
         self.poset, self.bp = self.make_co()
 
     def check_differentiated_h(self) -> bool:
@@ -34,22 +36,25 @@ class WRMemoryHistory(History):
 
     def make_co(self) -> tuple[Self, BadPattern]:
         """
+        :returns
+            tuple[self.poset, BadPattern]
+
         co = (po U wr)^+
         po is checked in History.__init__
         so just check wr here
         """
-        wr = dict[tuple[Any, Any], str]()
         for id, op in self.label.items():
             if op.method == "wr":
-                wr[op.arg] = id
+                self.writes[op.arg] = id
 
         cp = deepcopy(self.poset)
         for id, op in self.label.items():
             if op.method == "rd" and op.ret is not None:
-                src = wr.get((op.arg, op.ret))
+                src = self.writes.get((op.arg, op.ret))
                 if not src:
                     return cp, BadPattern.ThinAirRead
                 cp.link(src, id)
+                self.write_read_relations[src] = id
 
         if not nx.is_directed_acyclic_graph(cp.G):
             return cp, BadPattern.CyclicCO
@@ -67,7 +72,7 @@ class WRMemoryHistory(History):
         This method has to be preceded by self.make_co
         :returns True if WriteCoInitRead
         """
-        rd_init: list(tuple[str, Operation]) = []   # (id, Operation)
+        rd_init: list(tuple[str, Operation]) = []  # (id, Operation)
         for id, op in self.label.items():
             if op.method == "rd" and op.ret is None:
                 rd_init.append((id, op))
@@ -91,7 +96,9 @@ class WRMemoryHistory(History):
             if op.method == "wr":
                 wr[op.arg] = id
 
-        wr_relations = list[tuple[str, str, str]]()  # [(var, wr1, rd1), (var, wr2, rd2), ...]
+        wr_relations = list[
+            tuple[str, str, str]
+        ]()  # [(var, wr1, rd1), (var, wr2, rd2), ...]
         for id, op in self.label.items():
             if op.method == "rd":
                 src = wr.get((op.arg, op.ret))
@@ -109,6 +116,24 @@ class WRMemoryHistory(History):
 
         return False
 
+    def is_cyclic_cf(self) -> bool:
+        cf = list[tuple[str, str]]()
+        for w, r in self.write_read_relations.items():
+            v = self.label[r].arg
+            r_anc = nx.ancestors(self.poset.G, r)
+            for id in r_anc:
+                if id == w:
+                    continue
+                op = self.label[id]
+                if op.method == "wr" and op.arg[0] == v:
+                    cf.append((id, w))
+
+        cp = deepcopy(self.poset)
+        for s, d in cf:
+            cp.link(s, d)
+
+        return not nx.is_directed_acyclic_graph(cp.G)
+
 
 class CCBPResult(NamedTuple):
     is_CC: bool
@@ -123,3 +148,20 @@ def find_cc_bad_pattern(h: WRMemoryHistory) -> CCBPResult:
     if h.is_write_co_read():
         return CCBPResult(False, BadPattern.WriteCORead)
     return CCBPResult(True, None)
+
+
+class CCvBPResult(NamedTuple):
+    is_CCv: bool
+    bad_pattern: BadPattern
+
+
+def find_ccv_bad_pattern(h: WRMemoryHistory) -> CCvBPResult:
+    if h.bp:
+        return CCvBPResult(False, h.bp)
+    if h.is_write_co_init_read():
+        return CCvBPResult(False, BadPattern.WriteCOInitRead)
+    if h.is_write_co_read():
+        return CCvBPResult(False, BadPattern.WriteCORead)
+    if h.is_cyclic_cf():
+        return CCvBPResult(False, BadPattern.CyclicCF)
+    return CCvBPResult(True, None)
