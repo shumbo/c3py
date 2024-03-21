@@ -3,6 +3,7 @@ from c3py.bad_pattern import (
     WRMemoryHistory,
     find_cc_bad_pattern,
     find_ccv_bad_pattern,
+    find_cm_bad_pattern,
 )
 from c3py.history import Operation
 
@@ -227,4 +228,28 @@ class TestWRMemoryHistory:
         h = self.make_wrhistory_d()
         res = find_ccv_bad_pattern(h)
         assert res.is_CCv
+        assert not res.bad_pattern
+
+    def test_cm_bad_pattern_a(self):
+        h = self.make_wrhistory_a()
+        res = find_cm_bad_pattern(h)
+        assert res.is_CM
+        assert not res.bad_pattern
+
+    def test_cm_bad_pattern_b(self):
+        h = self.make_wrhistory_b()
+        res = find_cm_bad_pattern(h)
+        assert not res.is_CM
+        assert res.bad_pattern == BadPattern.WriteHBInitRead
+
+    def test_cm_bad_pattern_c(self):
+        h = self.make_wrhistory_c()
+        res = find_cm_bad_pattern(h)
+        assert not res.is_CM
+        assert res.bad_pattern == BadPattern.CyclicHB
+
+    def test_cm_bad_pattern_d(self):
+        h = self.make_wrhistory_d()
+        res = find_cm_bad_pattern(h)
+        assert res.is_CM
         assert not res.bad_pattern

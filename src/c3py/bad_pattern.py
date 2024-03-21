@@ -25,6 +25,12 @@ class WRMemoryHistory(History):
         self.write_read_relations = dict[str, str]()
         self.poset, self.bp = self.make_co()
 
+        self.process_last_op = dict[str, str]()
+        for process, ops in data.items():
+            self.process_last_op[process] = f"{process}.{ops[-1]}"
+
+        self.hb: dict[list[tuple[str, str]]] = self.make_hb()
+
     def check_differentiated_h(self) -> bool:
         wr = set[Operation.arg]()
         for id, op in self.label.items():
@@ -66,6 +72,24 @@ class WRMemoryHistory(History):
             cp.link(e[0], e[1])
 
         return cp, None
+
+    def make_hb(self) -> dict[list[tuple[str, str]]]:
+        hb = dict[list[tuple[str, str]]]()
+        for process, _ in self.process_last_op.items():
+            hb[process] = []
+
+        for wr, rd in self.write_read_relations.items():
+            rd_process = rd[0]
+            v = self.label[rd].arg
+            rd_ret = self.label[rd].ret
+
+            r_anc = nx.ancestors(self.poset.G, rd)
+            for id in r_anc:
+                op = self.label[id]
+                if op.method == "wr" and op.arg[0] == v and op.arg[1] != rd_ret:
+                    hb[rd_process].append((id, wr))
+
+        return hb
 
     def is_write_co_init_read(self) -> bool:
         """
@@ -134,6 +158,36 @@ class WRMemoryHistory(History):
 
         return not nx.is_directed_acyclic_graph(cp.G)
 
+    def is_write_hb_init_read(self) -> bool:
+        init_rds = list[Operation]()
+        for id, op in self.label.items():
+            if op.method == "rd" and not op.ret:
+                init_rds.append(op)
+
+        for op in init_rds:
+            process = op.op_id[0]
+            cp = deepcopy(self.poset)
+            for s, d in self.hb[process]:
+                cp.link(s, d)
+
+            anc_rd = nx.ancestors(cp.G, op.op_id)
+            for id in anc_rd:
+                op1 = self.label[id]
+                if op1.method == "wr" and op1.arg[0] == op.arg:
+                    return True
+
+        return False
+
+    def is_cyclic_hb(self) -> bool:
+        for _, hbo in self.hb.items():
+            cp = deepcopy(self.poset)
+            for tup in hbo:
+                cp.link(tup[0], tup[1])
+            if not nx.is_directed_acyclic_graph(cp.G):
+                return True
+
+        return False
+
 
 class CCBPResult(NamedTuple):
     is_CC: bool
@@ -165,3 +219,22 @@ def find_ccv_bad_pattern(h: WRMemoryHistory) -> CCvBPResult:
     if h.is_cyclic_cf():
         return CCvBPResult(False, BadPattern.CyclicCF)
     return CCvBPResult(True, None)
+
+
+class CMBPResult(NamedTuple):
+    is_CM: bool
+    bad_pattern: BadPattern
+
+
+def find_cm_bad_pattern(h: WRMemoryHistory) -> CMBPResult:
+    if h.bp:
+        return CMBPResult(False, h.bp)
+    if h.is_write_co_init_read():
+        return CMBPResult(False, BadPattern.WriteCOInitRead)
+    if h.is_write_co_read():
+        return CMBPResult(False, BadPattern.WriteCORead)
+    if h.is_write_hb_init_read():
+        return CMBPResult(False, BadPattern.WriteHBInitRead)
+    if h.is_cyclic_hb():
+        return CMBPResult(False, BadPattern.CyclicHB)
+    return CMBPResult(True, None)
