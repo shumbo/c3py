@@ -101,9 +101,6 @@ class WRMemoryHistory(History):
             if op.method == "rd" and op.ret is None:
                 rd_init.append((id, op))
 
-        if len(rd_init) == 0:
-            return False
-
         for id1, op1 in rd_init:
             anc = nx.ancestors(self.poset.G, id1)
             for id2 in anc:
